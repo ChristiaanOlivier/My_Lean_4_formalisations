@@ -1,5 +1,7 @@
 import Mathlib.Basic.Logic.Basic
 import Mathlib.Algebra.Group.Defs
+import Mathlib.Basic.Real.Basic
+import Mathlib.CategoryTheory.Category.Basic
 
 -- Tactic-style proof that LEM can not be proven false.
 theorem not_not_LEM (p : Prop) : ¬¬(p ∨¬p) := by
@@ -25,6 +27,43 @@ end barber_paradox
 #print axioms not_not_LEM
 #print axioms not_p_iff_np
 #print axioms barber_paradox
+
+-- Showing that Lean types form a category
+section
+
+-- Our objects are types
+variable {α β γ δ : Type}
+
+-- Our morphisms are functions
+variable {f : α → β} {g : β → γ} {h : γ → δ}
+
+-- We define the identity morphism as the identity function
+def id_m : α → α := id
+
+-- Composition is defined as follows:
+def comp_m (f : α → β) (g : β → γ) : α → γ := fun x => g (f x)
+
+
+theorem left_unit_law : f = comp_m id_m f := by
+  rfl
+
+theorem right_unit_law : comp_m f id_m = f := by
+  rfl
+
+theorem associative_law : comp_m f (comp_m g h) = comp_m (comp_m f g) h := by
+  rfl
+
+open CategoryTheory
+
+instance leanCat : Category (Type) where
+  Hom α β := α → β
+  id _ := id_m
+  comp f g := comp_m f g
+  id_comp _ := left_unit_law
+  comp_id _ := right_unit_law
+  assoc _ _ _ := associative_law
+
+end
 
 -- Formalisations of some group theory
 variable {G : Type*} [Group G]

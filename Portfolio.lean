@@ -15,6 +15,10 @@ import Mathlib.Analysis.Complex.Exponential
 
                 Formalisation of proof that Zhegalkin polynomials form a preorder.
 
+I realise that this polynomial ring is slightly more general than the usual Zhegalkin polynomials,
+since I didn't quotient out X^2-X for every variable X, but the polynomials evaluate to the same
+Boolean values either way.
+
 -/
 
 section Zhegalkin

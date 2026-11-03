@@ -3,32 +3,52 @@ import Mathlib.Algebra.Group.Defs
 import Mathlib.Basic.Real.Basic
 import Mathlib.CategoryTheory.Category.Basic
 
--- Tactic-style proof that LEM can not be proven false.
-theorem not_not_LEM (p : Prop) : ¬¬(p ∨¬p) := by
-  intro h
-  have np : ¬p := fun x => h (Or.inl x)
-  exact h (Or.inr np)
+import Mathlib.Algebra.MvPolynomial.Basic
+import Mathlib.Algebra.MvPolynomial.Eval
+import Mathlib.Data.ZMod.Defs
 
--- Term-style proof that a proposition can not be equivalent to its negation.
-lemma not_p_iff_np : ¬(p ↔ ¬p) :=
-  fun h => (fun n : p => h.mp n n) (h.mpr (fun m : p => h.mp m m))
 
--- Applying not_p_iff_np to formalise the Barber paradox.
-section barber_paradox
+import Mathlib.Basic.Real.Basic
+import Mathlib.Analysis.Complex.Exponential
 
-variable (men : Type) (barber : men)
-variable (shaves : men → men → Prop)
+/-
 
-theorem barber_paradox (h : ∀ x : men, shaves barber x ↔ ¬ shaves x x) : False :=
-  not_p_iff_np (h barber)
-end barber_paradox
+                Formalisation of proof that Zhegalkin polynomials form a preorder.
 
--- No axioms used
-#print axioms not_not_LEM
-#print axioms not_p_iff_np
-#print axioms barber_paradox
+-/
 
--- Showing that Lean types form a category
+section Zhegalkin
+
+variable {n : ℕ}
+
+open MvPolynomial
+
+abbrev zhegalkinPoly (n : ℕ) : Type := MvPolynomial (Fin n) (ZMod 2)
+
+def zhegalkinEval (n : ℕ) (x : Fin n → ZMod 2) (y : zhegalkinPoly n) : ZMod 2 :=
+MvPolynomial.eval x y
+
+def implies {n : ℕ} (p q : zhegalkinPoly n) : Prop :=
+  ∀ a : Fin n → ZMod 2, zhegalkinEval n a p = 1 → zhegalkinEval n a q = 1
+
+instance {n : ℕ} : Preorder (zhegalkinPoly n) where
+  le := implies
+  le_refl := by
+    intro p a hp
+    exact hp
+  le_trans := by
+    intro p q r hpq hqr a hp
+    exact hqr a (hpq a hp)
+
+end Zhegalkin
+
+
+/-
+
+                Showing that Lean types form a category
+
+-/
+
 section
 
 -- Our objects are types
@@ -65,7 +85,45 @@ instance leanCat : Category (Type) where
 
 end
 
--- Formalisations of some group theory
+/-
+
+                Formalisations of logic
+
+-/
+
+-- Tactic-style proof that LEM can not be proven false.
+theorem not_not_LEM (p : Prop) : ¬¬(p ∨¬p) := by
+  intro h
+  have np : ¬p := fun x => h (Or.inl x)
+  exact h (Or.inr np)
+
+-- Term-style proof that a proposition can not be equivalent to its negation.
+lemma not_p_iff_np : ¬(p ↔ ¬p) :=
+  fun h => (fun n : p => h.mp n n) (h.mpr (fun m : p => h.mp m m))
+
+-- Applying not_p_iff_np to formalise the Barber paradox.
+section barber_paradox
+
+variable (men : Type) (barber : men)
+variable (shaves : men → men → Prop)
+
+theorem barber_paradox (h : ∀ x : men, shaves barber x ↔ ¬ shaves x x) : False :=
+  not_p_iff_np (h barber)
+end barber_paradox
+
+-- No axioms used
+#print axioms not_not_LEM
+#print axioms not_p_iff_np
+#print axioms barber_paradox
+
+
+
+/-
+
+                Some formalisations in group theory
+
+-/
+
 variable {G : Type*} [Group G]
 
 #check (mul_assoc : ∀ a b c : G, a * b * c = a * (b * c))
@@ -101,7 +159,6 @@ theorem mul_one' (a : G) : a * 1 = a  := by
   calc a * 1 = ( a * a⁻¹ ) * a        := (helper₁ a).symm
     _ = 1 * a                         := by rw [mul_inv_cancel']
     _ = a                             := one_mul _
-
 
 lemma helper₂ (a b : G) : a * (b* (a * b)⁻¹) = 1    := by
   calc a * (b * (a * b)⁻¹) = (a * b) * (a * b)⁻¹    := (mul_assoc _ _ _).symm

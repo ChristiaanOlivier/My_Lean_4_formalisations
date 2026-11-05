@@ -6,35 +6,71 @@ import Mathlib.CategoryTheory.Category.Basic
 import Mathlib.Algebra.MvPolynomial.Basic
 import Mathlib.Algebra.MvPolynomial.Eval
 import Mathlib.Data.ZMod.Defs
+import Mathlib.Data.ZMod.Basic
 
+import Mathlib.RingTheory.Ideal.Defs
+import Mathlib.RingTheory.Ideal.Basic
+import Mathlib.LinearAlgebra.Quotient.Defs
+import Mathlib.RingTheory.Ideal.Quotient.Defs
+import Mathlib.RingTheory.Ideal.Quotient.Basic
+import Mathlib.RingTheory.Ideal.Maps
+import Mathlib.FieldTheory.Finite.Basic
 
 import Mathlib.Basic.Real.Basic
 import Mathlib.Analysis.Complex.Exponential
 
+
+
 /-
-
                 Formalisation of proof that Zhegalkin polynomials form a preorder.
-
-I realise that this polynomial ring is slightly more general than the usual Zhegalkin polynomials,
-since I didn't quotient out X^2-X for every variable X, but the polynomials evaluate to the same
-Boolean values either way.
-
 -/
 
 section Zhegalkin
 
-variable {n : ℕ}
-
 open MvPolynomial
 
-abbrev zhegalkinPoly (n : ℕ) : Type := MvPolynomial (Fin n) (ZMod 2)
+/-
+preZhegalkinPoly n is the unquotiented polynomial ring Z₂[X₁, X₂, ..., Xₙ]. We still need to mod out
+Xᵢ²-Xᵢ for it to become the Zhegalkin polynomial ring.
+-/
+abbrev preZhegalkinPoly (n : ℕ) : Type := MvPolynomial (Fin n) (ZMod 2)
 
-def zhegalkinEval (n : ℕ) (x : Fin n → ZMod 2) (y : zhegalkinPoly n) : ZMod 2 :=
-MvPolynomial.eval x y
+/-
+zhegalkinIdeal n is an ideal of preZhegalkinPoly n with generators Xᵢ²-Xᵢ.
+-/
+noncomputable def zhegalkinIdeal (n : ℕ) :  Ideal (preZhegalkinPoly n) :=
+  Ideal.span {p | ∃ i : Fin n, p = X i ^ 2 - X i}
+
+/- Now we can define the Zhegalkin polynomial ring.
+-/
+abbrev zhegalkinPoly (n : ℕ) := (preZhegalkinPoly n) ⧸ (zhegalkinIdeal n)
+
+theorem ideal_in_kernel {n : ℕ} {x : Fin n → ZMod 2} :
+    ∀ a ∈ zhegalkinIdeal n, (eval x) a = 0 := by
+  intro a ha
+  have h : zhegalkinIdeal n ≤ RingHom.ker (eval x) := by
+    unfold zhegalkinIdeal
+    rw [Ideal.span_le]
+    rintro p ⟨i, rfl⟩
+    /- The following line says that membership of the underlying set of an ideal corresponds
+    to membership of the ideal itself.
+    -/
+    rw [SetLike.mem_coe]
+    rw [RingHom.mem_ker]
+    rw [map_sub]
+    rw [map_pow]
+    rw [eval_X]
+    rw [ZMod.pow_card]
+    rw [sub_self]
+  exact h ha
+
+noncomputable def zhegalkinEval (n : ℕ) (x : Fin n → ZMod 2) (y : zhegalkinPoly n) : ZMod 2 :=
+  Ideal.Quotient.lift (zhegalkinIdeal n) (MvPolynomial.eval x) ideal_in_kernel y
 
 def implies {n : ℕ} (p q : zhegalkinPoly n) : Prop :=
   ∀ a : Fin n → ZMod 2, zhegalkinEval n a p = 1 → zhegalkinEval n a q = 1
 
+/- Finally we can show that they form a preorder. -/
 instance {n : ℕ} : Preorder (zhegalkinPoly n) where
   le := implies
   le_refl := by

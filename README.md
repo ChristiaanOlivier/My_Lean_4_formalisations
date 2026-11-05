@@ -1,5 +1,5 @@
-# portfolio
+# Portfolio
 
-Please see Portfolio.lean for examples.
+Please see the file Portfolio.lean for examples.
 
 I recently added a formalisation to show that Zhegalkin polynomials form a preorder.
